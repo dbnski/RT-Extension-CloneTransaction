@@ -1,0 +1,25 @@
+<%init>
+my $Ticket = $Transaction->TicketObj;
+my $Attachments = $ARGS{'Attachments'};
+
+if ($Transaction->ObjectType ne 'RT::Ticket' ||
+    ! $Ticket->CurrentUserHasRight('ModifyTicket') ||
+    ! $Attachments->[0] ||
+    $Transaction->Type !~ /^(Correspond|Comment)$/) {
+
+  return;
+}
+
+if ( $Ticket->QueueObj->CurrentUserHasRight('CreateTicket') ) {
+  $$titlebar_cmd .=
+    '[<a href="'. $ClonePath .'?Transaction='. $Transaction->Id .'"' 
+    . ' id="clone-to-'. $Transaction->Id .'"'
+    . ' class="clone-to-link">'. loc('Clone To') .'</a>]';
+}
+</%init>
+
+<%args>
+$ClonePath => RT->Config->Get('WebPath') . "/Ticket/CloneTransaction.html"
+$Transaction => undef
+$titlebar_cmd => undef
+</%args>

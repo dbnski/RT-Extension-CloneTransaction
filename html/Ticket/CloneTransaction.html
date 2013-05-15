@@ -1,0 +1,39 @@
+<%init>
+unless ( $ARGS{'Transaction'} && $ARGS{'Ticket'} ) {
+  Abort('The request is missing required parameters');
+}
+
+my $transaction = RT::Transaction->new($session{'CurrentUser'});
+unless ($transaction->Load($ARGS{'Transaction'})) {
+  Abort('Failed to load the requested transaction ('. $ARGS{'Transaction'} .')');
+}
+
+unless ($transaction->Type =~ /^(Correspond|Comment)$/) {
+  Abort('Unsupported transaction type ('. $transaction->Type .')');
+}
+
+my $user = RT::User->new($session{'CurrentUser'});
+$user->Load($transaction->Creator);
+
+my $ticket = RT::Ticket->new($user);
+unless ($ticket->Load($ARGS{'Ticket'})) {
+  Abort('Failed to load the requested ticket ('. $ARGS{'Ticket'} .')');
+}
+
+unless ($ticket->HasRight(Right => 'ModifyTicket', Principal => $user)) {
+  Abort($user->EmailAddress .' is not allowed to send messages to ticket #'. $ticket->Id);
+}
+
+my $attachments = $transaction->Attachments;
+my $MIMEObj = $attachments->First->ContentAsMIME(Children => 1);
+my $subject = $MIMEObj->head->get('Subject') || $ticket->Subject;
+$subject =~ s/\[.*?#[0-9]+\][ ]*//;
+$MIMEObj->head->replace('Subject', $subject);
+
+my ($trxid, $msg, $trx) = $ticket->Correspond(MIMEObj => $MIMEObj);
+unless ( $trxid  ) {
+  Abort('A problem occurred while cloning the transaction: ' . $msg);
+}
+
+RT::Interface::Web::Redirect($RT::WebURL .'Ticket/Display.html?id='. $ARGS{'Ticket'});
+</%init>

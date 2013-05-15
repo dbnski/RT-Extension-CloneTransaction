@@ -1,0 +1,34 @@
+<div id="CloneTransactionDialog" style="display: none;">
+  <h2>
+    Please select target ticket
+  </h2>
+  <select id="CloneTransaction-Target" style="padding: 3px 20px;">
+% while ( my $MyTicket = $MyTickets->Next() ) {
+    <option value="<% $MyTicket->Id %>">[#<% $MyTicket->Id %>] <% $MyTicket->Subject %></option>
+% }
+  </select>
+  <p>
+    <input type="button" id="CloneTransaction-Continue" value="Continue">
+    <input type="button" id="CloneTransaction-Cancel" value="Cancel">
+  </p>
+</div>
+
+<%init>
+unless ( $Ticket->CurrentUserHasRight('ModifyTicket') ) {
+  return;
+}
+
+$MyTickets = RT::Tickets->new($session{'CurrentUser'});
+$MyTickets->LimitQueue(VALUE => $Ticket->QueueObj->Name);
+$MyTickets->LimitId(OPERATOR => '!=', VALUE => $Ticket->Id);
+$MyTickets->LimitStatus(OPERATOR => '!=', VALUE => 'resolved');
+$MyTickets->LimitStatus(OPERATOR => '!=', VALUE => 'rejected');
+$MyTickets->OrderByCols({ FIELD => 'LastUpdated', ORDER => 'DESC' });
+</%init>
+
+<%args>
+$MyTickets => undef
+$Ticket => undef
+$Transactions => undef
+$Attachments => undef
+</%args>
